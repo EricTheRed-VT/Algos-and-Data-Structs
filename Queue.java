@@ -4,25 +4,28 @@
 
 import java.util.Iterator;
 
-public class Stack<T> {
+public class Queue<T> {
     private Node head = null;
+    private Node tail = null;
 
     private class Node {
         T data;
         Node next;
     }
 
-    public void push(T item) {
-        Node temp = head;
-        head = new Node();
-        head.next = temp;
-        head.data = item;
+    public void enqueue(T item) {
+        Node temp = tail;
+        tail = new Node();
+        tail.data = item;
+        if (isEmpty()) { head = tail; }
+        else { temp.next = temp; }
     }
 
-    public T pop() {
+    public T dequeue() {
         if (head == null) { return null; }
         T item = head.data;
         head = head.next;
+        if (isEmpty()) { tail = null; }
         return item;
     }
 
@@ -31,10 +34,10 @@ public class Stack<T> {
     }
 
     public Iterator<T> iterator() {
-        return new StackIterator();
+        return new QueueIterator();
     }
 
-    private class StackIterator implements Iterator<T> {
+    private class QueueIterator implements Iterator<T> {
         private Node current = head;
 
         public boolean hasNext() {
