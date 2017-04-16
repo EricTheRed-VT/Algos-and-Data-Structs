@@ -27,37 +27,67 @@ public class RedBlackTree<K extends Comparable<K>, V> {
 
     // flip a right-leaning red link to the left
     private Node rotateLeft(Node curr) {
-        Node next = head.right;
+        Node next = curr.right;
         assert isRed(next);
 
-        head.right = next.left;
-        next.left = head;
-        next.color = head.color;
-        head.color = RED;
+        curr.right = next.left;
+        next.left = curr;
+        next.color = curr.color;
+        curr.color = RED;
+        next.count = curr.count;
+        curr.count = 1 + size(curr.left) + size(curr.right);
         return next;
     }
 
     // flip a left-leaning red link to the right (for temporary use)
     private Node rotateRight(Node curr) {
-        Node next = head.left;
+        Node next = curr.left;
         assert isRed(next);
 
-        head.left = next.right;
-        next.right = head;
-        next.color = head.color;
-        head.color = RED;
+        curr.left = next.right;
+        next.right = curr;
+        next.color = curr.color;
+        curr.color = RED;
+        next.count = curr.count;
+        curr.count = 1 + size(curr.left) + size(curr.right);
         return next;
     }
 
-    // if a black node has two red children, flip all three colors
+    // flips the color of a node and both its children
     private void flipColors(Node head) {
-        assert !isRed(head);
-        assert isRed(head.left);
-        assert isRed(head.right);
+        head.color = !head.color;
+        head.left.color = !head.left.color;
+        head.right.color = !head.right.color;
+    }
 
-        head.color = RED;
-        head.left.color = BLACK;
-        head.right.color = BLACK;
+    private Node moveRedLeft(Node curr) {
+        flipColors(curr);
+        if (isRed(curr.right.left)) {
+            curr.right = rotateRight(curr.right);
+            curr = rotateLeft(curr);
+            flipColors(curr);
+        }
+        return curr;
+    }
+
+    private Node moveRedRight(Node curr) {
+        flipColors(curr);
+        if (isRed(curr.left.left)) {
+            curr = rotateRight(curr);
+            flipColors(curr);
+        }
+        return curr;
+    }
+
+    private Node balance(Node curr) {
+        if (isRed(curr.right)) { curr = rotateLeft(curr); }
+        if (isRed(curr.left) && isRed(curr.left.left)) {
+            curr = rotateRight(curr);
+        }
+        if (isRed(curr.right) && isRed(curr.right)) { flipColors(curr); }
+
+        curr.count = 1 + size(curr.left) + size(curr.right);
+        return curr;
     }
 
     public int size() {
@@ -125,36 +155,34 @@ public class RedBlackTree<K extends Comparable<K>, V> {
     }
 
     public K min() {
-        return min(root);
+        if (root == null) { throw new NoSuchElementException("called min() with empty tree"); }
+        return min(root).key;
     }
-    private K min(Node curr) {
-        if (curr == null) { return null; }
-
-        while (curr.left != null) {
-            curr = curr.left
-        }
-        return curr.key;
+    private Node min(Node curr) {
+        if (curr.left == null) { return curr; }
+        else { return min(curr.left); }
     }
 
     public K max() {
-        return max(root);
+        if (root == null) { throw new NoSuchElementException("called max() with empty tree"); }
+        return max(root).key;
     }
-    private K max(Node curr) {
-        if (curr == null) { return null; }
-
-        while (curr.right != null) {
-            curr = curr.right
-        }
-        return curr.key;
+    private Node max(Node curr) {
+        if (curr.right == null) { return curr; }
+        else { return max(curr.right); }
     }
 
-    // overloaded method calls recursive func
     public K floor(K kee) {
+        if (kee == null) {
+            throw new IllegalArgumentException("argument to floor() is null");
+        }
+        if (root == null) {
+            throw new NoSuchElementException("called floor() with empty tree");
+        }
         Node curr = floor(root, kee);
         if (curr == null) { return null; }
         return curr.key;
     }
-    // recursive func
     private Node floor(Node curr, K kee) {
         if (curr == null) { return null; }
 
@@ -167,13 +195,17 @@ public class RedBlackTree<K extends Comparable<K>, V> {
         else { return curr; }
     }
 
-    // overloaded method calls recursive func
     public K ceiling(K kee) {
+        if (kee == null) {
+            throw new IllegalArgumentException("argument to ceiling() is null");
+        }
+        if (root == null) {
+            throw new NoSuchElementException("called ceiling() with empty tree");
+        }
         Node curr = ceiling(root, kee);
         if (curr == null) { return null; }
         return curr.key;
     }
-    // recursive func
     private Node ceiling(Node curr, K kee) {
         if (curr == null) { return null; }
 
@@ -186,11 +218,10 @@ public class RedBlackTree<K extends Comparable<K>, V> {
         else { return curr; }
     }
 
-    //overloaded method
     public int rank(K kee) {
+        if (kee == null) throw new IllegalArgumentException("argument to rank() is null");
         return rank(root, kee);
     }
-    //recursive func
     private int rank(Node curr, K kee) {
         if (curr == null) { return 0; }
 
@@ -202,45 +233,74 @@ public class RedBlackTree<K extends Comparable<K>, V> {
     }
 
     public void deleteMin() {
+        if (root == null) { throw new NoSuchElementException("Tree underflow"); }
+
+        if (!isRed(root.left) && !isRed(root.right)) { root.color = RED; }
         root = deleteMin(root);
+        if (root != null) { root.color = BLACK; }
     }
     private Node deleteMin(Node curr) {
-        if (curr.left == null) { return curr.right; }
+        if (curr.left == null) { return null; }
+
+        if (!isRed(curr.left) && !isRed(curr.left.left)) {
+            curr = moveRedLeft(curr);
+        }
+
         curr.left = deleteMin(curr.left);
-        curr.count = 1 + size(curr.left) + size(curr.right);
-        return curr;
+        return balance(curr);
     }
 
     public void deleteMax() {
+        if (root == null) { throw new NoSuchElementException("Tree underflow"); }
+
+        if (!isRed(root.left) && !isRed(root.right)) { root.color = RED; }
         root = deleteMax(root);
+        if (root != null) { root.color = BLACK; }
     }
     private Node deleteMax(Node curr) {
-        if (curr.right == null) { return curr.left; }
+        if (isRed(curr.left)) { curr = rotateRight(curr); }
+        if (curr.left == null) { return null; }
+
+        if (!isRed(curr.right) && !isRed(curr.right.left)) {
+            curr = moveRedRight(curr);
+        }
         curr.right = deleteMax(curr.right);
-        curr.count = 1 + size(curr.left) + size(curr.right);
-        return curr;
+        return balance(curr);
     }
 
     public void delete(K kee) {
+        if (kee == null) {
+            throw new IllegalArgumentException("argument to delete() is null");
+        }
+        if (!contains(kee)) { return; }
+
+        if (!isRed(root.left) && !isRed(root.right)) { root.color = RED; }
+
         root = delete(root, kee);
+        if (root != null) { root.color = BLACK; }
     }
     private Node delete(Node curr, K kee) {
-        if (curr == null) { return null; }
-
-        int cmp = kee.compareTo(curr.key);
-        if (cmp < 0) { curr.left = delete(curr.left, kee); }
-        else if (cmp > 0) { curr.right = delete(curr.right, kee); }
-        //otherwise, found the node to delete
-        else {
-            if (curr.right == null) { return curr.left; }
-
-            Node temp = curr;
-            curr = min(temp.right);
-            curr.right = deleteMin(temp.right);
-            curr.left = temp.left;
+        if (kee.compareTo(curr.key) < 0) {
+            if (!isRed(curr.left) && !isRed(curr.left.left)) {
+                curr = moveRedLeft(curr);
+            }
+            curr.left = delete(curr.left, kee);
+        } else {
+            if (isRed(curr.left)) { curr = rotateRight(curr); }
+            if ((kee.compareTo(curr.key) == 0) && (curr.right == null)) {
+                return null;
+            }
+            if (!isRed(curr.right) && !isRed(curr.right.left)) {
+                curr = moveRedRight(curr);
+            }
+            if (kee.compareTo(curr.key) == 0) {
+                Node next = min(curr.right);
+                curr.key = next.key;
+                curr.value = next.value;
+                curr.right = deleteMin(curr.right);
+            } else { curr.right = delete(curr.right, key); }
         }
-        curr.count = 1 + size(curr.left) + size(curr.right);
-        return curr;
+        return balance(curr);
     }
 
     // returns a queue of the keys in order
