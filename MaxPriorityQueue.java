@@ -6,7 +6,7 @@ public class MaxPriorityQueue<T extends Comparable<T>> {
     private int size;
 
     public MaxPriorityQueue() {
-        MaxPriorityQueue(10);
+        return MaxPriorityQueue(10);
     }
 
     public MaxPriorityQueue(int startCapacity) {
@@ -17,22 +17,37 @@ public class MaxPriorityQueue<T extends Comparable<T>> {
         return size == 0;
     }
 
-    public void insert(t item) {
+    public void insert(T item) {
+        // if out of space in the array, replace it with larger
         if (arr.length-1 < ++size) {
-            //TODO: expand array
+            T[] bigger = (T[]) new Comparable[2*size];
+            for (int i = 0; i < arr.length; i++) {
+                bigger[i] = arr[i];
+            }
+            arr = bigger;
         }
+
+        // insert new item
         arr[size] = item;
         swim(size);
     }
 
     public T takeMax() {
+        // pull out max value
         T max = arr[1];
         swap(1, size--);
         sink(1);
         arr[size+1] = null;
+
+        // if data takes up less than 1/4 of the array, shrink it
         if (size < arr.length/4) {
-            //TODO: shrink array
+            T[] smaller = (T[]) new Comparable[2*size];
+            for (int i = 0; i <= size; i++) {
+                smaller[i] = arr[i];
+            }
+            arr = smaller;
         }
+
         return max;
     }
 
